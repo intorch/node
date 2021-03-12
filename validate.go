@@ -31,8 +31,8 @@ func assertNotNil(obj interface{}, message string) {
 }
 
 func validate(engine *Engine, channel *Channel, ID string) {
-	assertNotEmpty(ID, "Node requires ID to run.")
+	assertNotEmpty(ID, "Node requires ID.")
 
-	assertNotNil(channel, "Node requires channel to run.")
-	assertNotNil(engine, "Node requires engine to run.")
+	assertNotNil(channel, "Node requires channel.")
+	assertNotNil(engine, "Node requires engine.")
 }

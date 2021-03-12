@@ -14,12 +14,28 @@
 
 package core
 
-//Kernel data structure which is formed by the components necessary to
+import "github.com/google/uuid"
+
+//Node data structure which is formed by the components necessary to
 //create a micro execution layer.
-type Kernel struct {
+type Node struct {
 	ID      string
 	Channel *Channel
 	Engine  *Engine
+}
+
+func New(engine *Engine, channel *Channel, ID string) *Node {
+	if len(ID) == 0 {
+		ID = uuid.NewString()
+	}
+
+	validate(engine, channel, ID)
+
+	return &Node{
+		Engine:  engine,
+		Channel: channel,
+		ID:      ID,
+	}
 }
 
 //Run micro kernel. It'll start a go runtine to receive messages and
@@ -27,11 +43,11 @@ type Kernel struct {
 //the inlet channel.
 //Before run, it'll validade if all parameters are present. If anyone is
 //not present the system stop execution with status 1.
-func (k Kernel) Run() {
-	validate(k.Engine, k.Channel, k.ID)
+func (n Node) Run() {
+	validate(n.Engine, n.Channel, n.ID)
 
-	for msg := range k.Channel.Input {
-		resp := (*k.Engine)(msg)
-		k.Channel.Output <- resp
+	for msg := range n.Channel.Input {
+		resp := (*n.Engine)(msg)
+		n.Channel.Output <- resp
 	}
 }

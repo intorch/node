@@ -15,19 +15,43 @@
 package core
 
 import (
-	"log"
+	"testing"
 
 	"github.com/intorch/message"
+	"github.com/stretchr/testify/assert"
 )
 
-//Engine type to define the way to operate and execute every component inside
-//the kernel.
-type Engine func(msg message.Message) message.Message
+func TestEngine_ThisIsJustAnExample(t *testing.T) {
+	assert := assert.New(t)
 
-//ThisIsJustAnExample Do not use it in production! It's here just for a test purpose.
-var ThisIsJustAnExample = Engine(func(msg message.Message) message.Message {
-	log.Println("\nDo not use it in production!!!")
-	log.Println(msg.Status)
+	msg := message.New(
+		make(message.Header),
+		make(message.Body),
+	)
 
-	return msg
-})
+	resp := ThisIsJustAnExample(*msg)
+
+	assert.NotNil(resp)
+	assert.Equal(*msg, resp)
+}
+
+func TestEngine_ResponseNotEquals(t *testing.T) {
+	assert := assert.New(t)
+
+	eng := Engine(func(msg message.Message) message.Message {
+		(*msg.Body)["hello"] = "world"
+
+		return msg
+	})
+
+	msg := message.New(
+		make(message.Header),
+		make(message.Body),
+	)
+
+	resp := eng(*msg)
+
+	assert.NotNil(resp)
+	assert.True((*msg).Equals(&resp))
+	assert.Equal((*resp.Body)["hello"], "world")
+}
