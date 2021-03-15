@@ -19,13 +19,14 @@ import (
 )
 
 func assertNotEmpty(data string, message string) {
+	print(len(data))
 	if len(data) == 0 {
 		log.Fatal(message)
 	}
 }
 
 func assertNotNil(obj interface{}, message string) {
-	if obj != nil {
+	if obj == nil {
 		log.Fatal(message)
 	}
 }
