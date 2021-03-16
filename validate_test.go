@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/intorch/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,8 +71,6 @@ func assertNotEmptyTestCase(funcName string, value string) error {
 //assertNotNilTestCase test case for assertNotNil
 func assertNotNilTestCase(funcName string, value interface{}) error {
 	argName := strings.ToUpper(strings.Replace(funcName, "Test_", "", 1))
-
-	print(value)
 
 	// Run the crashing code when FLAG is set
 	if os.Getenv(argName) == "1" {
@@ -123,27 +122,60 @@ func Test_assertNotNil(t *testing.T) {
 	assert.Nil(err)
 }
 
-// func Test_assertNotNilError(t *testing.T) {
-// 	assert := assert.New(t)
+func Test_assertNotNilError(t *testing.T) {
+	assert := assert.New(t)
 
-// 	err := assertNotNilTestCase(funcName(), nil)
+	err := assertNotNilTestCase(funcName(), nil)
 
-// 	assert.NotNil(err)
-// 	assert.Equal("exit status 1", err.Error())
-// }
+	assert.NotNil(err)
+	assert.Equal("exit status 1", err.Error())
+}
 
-// func Test_validate(t *testing.T) {
-// 	assert := assert.New(t)
+func Test_validate(t *testing.T) {
+	assert := assert.New(t)
 
-// 	enValue := Engine(func(msg message.Message) message.Message {
-// 		return msg
-// 	})
+	enValue := Engine(func(msg message.Message) message.Message { return msg })
+	chValue := &Channel{}
+	idValue := "some-id"
 
-// 	chValue := &Channel{}
+	err := validateTestCase(funcName(), &enValue, chValue, idValue)
 
-// 	idValue := "some-id"
+	assert.Nil(err)
+}
 
-// 	err := validateTestCase(funcName(), &enValue, chValue, idValue)
+func Test_validateNoId(t *testing.T) {
+	assert := assert.New(t)
 
-// 	assert.Nil(err)
-// }
+	enValue := Engine(func(msg message.Message) message.Message { return msg })
+	chValue := &Channel{}
+	idValue := ""
+
+	err := validateTestCase(funcName(), &enValue, chValue, idValue)
+
+	assert.NotNil(err)
+	assert.Equal("exit status 1", err.Error())
+}
+
+func Test_validateNoChannel(t *testing.T) {
+	assert := assert.New(t)
+
+	enValue := Engine(func(msg message.Message) message.Message { return msg })
+	idValue := "some-id"
+
+	err := validateTestCase(funcName(), &enValue, nil, idValue)
+
+	assert.NotNil(err)
+	assert.Equal("exit status 1", err.Error())
+}
+
+func Test_validateNoEngine(t *testing.T) {
+	assert := assert.New(t)
+
+	chValue := &Channel{}
+	idValue := "some-id"
+
+	err := validateTestCase(funcName(), nil, chValue, idValue)
+
+	assert.NotNil(err)
+	assert.Equal("exit status 1", err.Error())
+}

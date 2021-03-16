@@ -26,8 +26,7 @@ type Engine func(msg message.Message) message.Message
 
 //ThisIsJustAnExample Do not use it in production! It's here just for a test purpose.
 var ThisIsJustAnExample = Engine(func(msg message.Message) message.Message {
-	log.Println("\nDo not use it in production!!!")
-	log.Println(msg.Status)
+	log.Println("Do not use it in production!!!")
 
 	return msg
 })

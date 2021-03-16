@@ -16,24 +16,23 @@ package core
 
 import (
 	"log"
+	"reflect"
 )
 
 func assertNotEmpty(data string, message string) {
-	print(len(data))
 	if len(data) == 0 {
 		log.Fatal(message)
 	}
 }
 
 func assertNotNil(obj interface{}, message string) {
-	if obj == nil {
+	if obj == nil || reflect.ValueOf(obj).IsNil() {
 		log.Fatal(message)
 	}
 }
 
 func validate(engine *Engine, channel *Channel, ID string) {
 	assertNotEmpty(ID, "Node requires ID.")
-
 	assertNotNil(channel, "Node requires channel.")
 	assertNotNil(engine, "Node requires engine.")
 }
