@@ -21,22 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//the Engine that do fatorial
-var fatorial = Engine(func(msg message.Message) message.Message {
-	body := (*msg.Body)
-
-	vl := body["value"]
-
-	acc := 1
-	for i := vl.(int); i > 0; i-- {
-		acc = acc * i
-	}
-
-	body["fat"] = acc
-
-	return msg
-})
-
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
 
@@ -48,12 +32,12 @@ func TestNew(t *testing.T) {
 	assert.NotEmpty(node.ID)
 }
 
-func TestNewEquals(t *testing.T) {
+func TestNewChannelEquals(t *testing.T) {
 	assert := assert.New(t)
 
 	ch := &Channel{}
 
-	node := New(&fatorial, ch, "")
+	node := New(&fatorial, ch, "1234567890")
 
 	assert.NotNil(node)
 	assert.NotNil(node.Channel)
@@ -61,4 +45,129 @@ func TestNewEquals(t *testing.T) {
 	assert.NotEmpty(node.ID)
 
 	assert.Equal(node.Channel, ch)
+	assert.Equal("1234567890", node.ID)
+}
+
+func TestNode_Run(t *testing.T) {
+	assert := assert.New(t)
+
+	//create channel
+	channel := &Channel{}
+	channel.CreateInput(1)
+	channel.CreateOutput(1)
+
+	//create node
+	node := New(&fatorial, channel, "")
+
+	//create message and send it to channel
+	msg := message.New(make(message.Header), make(message.Body))
+	(*msg.Body)["value"] = 10
+	channel.Input <- *msg
+
+	//start node
+	go func() {
+		node.Run()
+	}()
+
+	//receive message
+	resp := <-channel.Output
+	value := (*resp.Body)["fat"].(int)
+
+	assert.Equal(value, 3628800)
+
+	//stop channel receive
+	close(channel.Output)
+}
+
+func TestNode_Run10MilionFatorial(t *testing.T) {
+	assert := assert.New(t)
+
+	//create channel
+	channel := &Channel{}
+	channel.CreateInput(1000000)
+	channel.CreateOutput(1000000)
+
+	//create node
+	node := New(&fatorial, channel, "")
+
+	//create message and post it in a channel. 10M timmes
+	go func() {
+		ONEMILLION := 10000000
+		for i := 0; i < ONEMILLION; i++ {
+			msg := message.New(
+				make(message.Header),
+				make(message.Body),
+			)
+
+			(*msg.Body)["value"] = 10
+
+			channel.Input <- *msg
+		}
+	}()
+
+	//start node
+	go func() {
+		node.Run()
+	}()
+
+	//start message receive
+	count := 0
+	for msg := range channel.Output {
+		value := (*msg.Body)["fat"].(int)
+		count = count + 1
+
+		assert.Equal(value, 3628800)
+
+		//cancel channel after receive 10M received
+		if count == 10000000 {
+			close(channel.Output)
+		}
+	}
+}
+
+func TestNode_Run10MilionDoNothing(t *testing.T) {
+	assert := assert.New(t)
+
+	//create channel
+	channel := &Channel{}
+	channel.CreateInput(1000000)
+	channel.CreateOutput(1000000)
+
+	//create node
+	node := New(&fatorial, channel, "")
+
+	//create message and post it in a channel. 10M timmes
+	go func() {
+		ONEMILLION := 10000000
+		for i := 0; i < ONEMILLION; i++ {
+			msg := message.New(
+				make(message.Header),
+				make(message.Body),
+			)
+
+			(*msg.Body)["value"] = 10
+
+			channel.Input <- *msg
+		}
+	}()
+
+	//start node
+	go func() {
+		node.Run()
+	}()
+
+	//start message receive
+	count := 0
+	for msg := range channel.Output {
+		// value := (*msg.Body)["fat"].(int)
+		value := msg
+		count = count + 1
+
+		assert.NotNil(value)
+
+		//cancel channel after receive 10M received
+		if count == 10000000 {
+			close(channel.Output)
+		}
+	}
 }

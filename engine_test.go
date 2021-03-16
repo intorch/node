@@ -21,6 +21,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//the Engine that do noting
+var doNothingEngine = Engine(func(msg message.Message) message.Message {
+	return msg
+})
+
+//the Engine that do fatorial
+var fatorial = Engine(func(msg message.Message) message.Message {
+	body := (*msg.Body)
+
+	vl := body["value"]
+
+	acc := 1
+	for i := vl.(int); i > 0; i-- {
+		acc = acc * i
+	}
+
+	body["fat"] = acc
+
+	return msg
+})
+
 func TestEngine_ThisIsJustAnExample(t *testing.T) {
 	assert := assert.New(t)
 
@@ -38,11 +59,6 @@ func TestEngine_ThisIsJustAnExample(t *testing.T) {
 func TestEngine_OneMilionDoNothing(t *testing.T) {
 	assert := assert.New(t)
 
-	//the Engine that do noting
-	var doNothingEngine = Engine(func(msg message.Message) message.Message {
-		return msg
-	})
-
 	msg := message.New(
 		make(message.Header),
 		make(message.Body),
@@ -59,22 +75,6 @@ func TestEngine_OneMilionDoNothing(t *testing.T) {
 
 func TestEngine_OneMilion10Fatorial(t *testing.T) {
 	assert := assert.New(t)
-
-	//the Engine that do fatorial
-	var fatorial = Engine(func(msg message.Message) message.Message {
-		body := (*msg.Body)
-
-		vl := body["value"]
-
-		acc := 1
-		for i := vl.(int); i > 0; i-- {
-			acc = acc * i
-		}
-
-		body["fat"] = acc
-
-		return msg
-	})
 
 	msg := message.New(
 		make(message.Header),
