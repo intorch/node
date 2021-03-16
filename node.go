@@ -14,7 +14,11 @@
 
 package core
 
-import "github.com/google/uuid"
+import (
+	"log"
+
+	"github.com/google/uuid"
+)
 
 //Node data structure which is formed by the components necessary to
 //create a micro execution layer.
@@ -25,11 +29,19 @@ type Node struct {
 }
 
 func New(engine *Engine, channel *Channel, ID string) *Node {
+	if engine == nil {
+		log.Fatal("The node cannot be created withot an engine")
+	}
+
 	if len(ID) == 0 {
 		ID = uuid.NewString()
 	}
 
-	validate(engine, channel, ID)
+	if channel == nil {
+		channel = &Channel{}
+		channel.CreateInput(10)
+		channel.CreateOutput(10)
+	}
 
 	return &Node{
 		Engine:  engine,
