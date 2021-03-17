@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package core
+package node
 
 import (
 	"github.com/intorch/message"
@@ -32,6 +32,16 @@ type Channel struct {
 	//Output message chan. In this Channel, this one will behave itself as the
 	//outbound channel
 	Output chan message.Message
+}
+
+//NewChannel create new channel with input and output chan with the same size,
+//that match with the size passed by the paramenter size
+func NewChannel(size uint) *Channel {
+	ch := &Channel{}
+	ch.CreateInput(size)
+	ch.CreateOutput(size)
+
+	return ch
 }
 
 //CreateInput function to create a new channel message. Case the input is already

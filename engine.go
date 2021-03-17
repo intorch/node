@@ -12,21 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package core
+package node
 
 import (
-	"log"
-
 	"github.com/intorch/message"
 )
 
 //Engine type to define the way to operate and execute every component inside
-//the kernel.
+//the INTORCH Platform.
 type Engine func(msg message.Message) message.Message
-
-//ThisIsJustAnExample Do not use it in production! It's here just for a test purpose.
-var ThisIsJustAnExample = Engine(func(msg message.Message) message.Message {
-	log.Println("Do not use it in production!!!")
-
-	return msg
-})

@@ -12,57 +12,121 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package core
+package node
 
 import (
 	"testing"
+	"time"
 
 	"github.com/intorch/message"
 	"github.com/stretchr/testify/assert"
 )
 
+var nodeTestEngine = Engine(func(msg message.Message) message.Message {
+	return msg
+})
+
+func TestCreate(t *testing.T) {
+	assert := assert.New(t)
+
+	n1 := Create(&nodeTestEngine, nil, "")
+
+	assert.NotNil(n1)
+	assert.NotNil(n1.Channel)
+	assert.NotNil(n1.Engine)
+	assert.NotEmpty(n1.ID)
+	assert.True(&nodeTestEngine == n1.Engine)
+}
+
+func TestCreate_AllParameters(t *testing.T) {
+	assert := assert.New(t)
+
+	ch := NewChannel(10)
+	ID := "1234567890"
+	n2 := Create(&nodeTestEngine, ch, ID)
+
+	assert.NotNil(n2)
+	assert.NotNil(n2.Channel)
+	assert.NotNil(n2.Engine)
+	assert.NotEmpty(n2.ID)
+	assert.Equal(n2.ID, "1234567890")
+	assert.True(&nodeTestEngine == n2.Engine)
+	assert.True(ch == n2.Channel)
+}
+
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
 
-	node := New(&fatorial, nil, "")
+	n1 := New(&nodeTestEngine)
 
-	assert.NotNil(node)
-	assert.NotNil(node.Channel)
-	assert.NotNil(node.Engine)
-	assert.NotEmpty(node.ID)
+	assert.NotNil(n1)
+	assert.NotNil(n1.Channel)
+	assert.NotNil(n1.Engine)
+	assert.NotEmpty(n1.ID)
+	assert.True(&nodeTestEngine == n1.Engine)
 }
 
-func TestNewChannelEquals(t *testing.T) {
+func TestNode_Write(t *testing.T) {
 	assert := assert.New(t)
+	n1 := New(&nodeTestEngine)
 
-	ch := &Channel{}
+	msg := message.New(make(message.Header), make(message.Body))
+	n1.Write(*msg)
 
-	node := New(&fatorial, ch, "1234567890")
+	assert.Len(n1.Channel.Input, 1)
+}
 
-	assert.NotNil(node)
-	assert.NotNil(node.Channel)
-	assert.NotNil(node.Engine)
-	assert.NotEmpty(node.ID)
+func TestNode_Read(t *testing.T) {
+	assert := assert.New(t)
+	n1 := New(&nodeTestEngine)
 
-	assert.Equal(node.Channel, ch)
-	assert.Equal("1234567890", node.ID)
+	//write one message in the node
+	msg := message.New(make(message.Header), make(message.Body))
+	n1.Write(*msg)
+
+	//asset that the input channel have one message
+	assert.Len(n1.Channel.Input, 1)
+
+	//start cosumer
+	go func() {
+		n1.Run()
+	}()
+
+	//wait for cosumer and check if output channel have one message
+	time.Sleep(time.Second)
+	assert.Len(n1.Channel.Output, 1)
+
+	//read the message
+	resp := n1.Read()
+
+	//assert the message is not nil, that it's the some of input and
+	//the outputchanel have no message
+	assert.NotNil(resp)
+	assert.True(resp.Equals(msg))
+	assert.Len(n1.Channel.Output, 0)
+}
+
+func TestNode_GetReader(t *testing.T) {
+	assert := assert.New(t)
+	n1 := New(&nodeTestEngine)
+
+	reader := n1.GetReader()
+
+	assert.NotNil(reader)
+	assert.Equal(reader, n1.Channel.Output)
 }
 
 func TestNode_Run(t *testing.T) {
 	assert := assert.New(t)
 
-	//create channel
-	channel := &Channel{}
-	channel.CreateInput(1)
-	channel.CreateOutput(1)
-
-	//create node
-	node := New(&fatorial, channel, "")
+	//create node using the fatorial engine that was created at the engine
+	//test case
+	node := New(&fatorial)
 
 	//create message and send it to channel
 	msg := message.New(make(message.Header), make(message.Body))
 	(*msg.Body)["value"] = 10
-	channel.Input <- *msg
+	node.Write(*msg)
 
 	//start node
 	go func() {
@@ -70,104 +134,41 @@ func TestNode_Run(t *testing.T) {
 	}()
 
 	//receive message
-	resp := <-channel.Output
+	resp := node.Read()
 	value := (*resp.Body)["fat"].(int)
 
 	assert.Equal(value, 3628800)
 
 	//stop channel receive
-	close(channel.Output)
+	node.Stop()
 }
 
-func TestNode_Run10MilionFatorial(t *testing.T) {
+func TestNode_Stop(t *testing.T) {
 	assert := assert.New(t)
+	TENMILLION := 10000000
 
-	//create channel
-	channel := &Channel{}
-	channel.CreateInput(1000000)
-	channel.CreateOutput(1000000)
+	var doNothingEngine = Engine(func(msg message.Message) message.Message { return msg })
+	node := Create(&doNothingEngine, NewChannel(uint(TENMILLION)), "test-case")
 
-	//create node
-	node := New(&fatorial, channel, "")
+	//create message and send it to channel
+	msg := message.New(make(message.Header), make(message.Body))
+	(*msg.Body)["value"] = 10
 
-	//create message and post it in a channel. 10M timmes
-	go func() {
-		ONEMILLION := 10000000
-		for i := 0; i < ONEMILLION; i++ {
-			msg := message.New(
-				make(message.Header),
-				make(message.Body),
-			)
+	//add One Million messages to the node
+	for i := 0; i < TENMILLION; i++ {
+		node.Write(*msg)
+	}
 
-			(*msg.Body)["value"] = 10
-
-			channel.Input <- *msg
-		}
-	}()
+	assert.Len(node.Channel.Input, TENMILLION)
 
 	//start node
 	go func() {
 		node.Run()
 	}()
 
-	//start message receive
-	count := 0
-	for msg := range channel.Output {
-		value := (*msg.Body)["fat"].(int)
-		count = count + 1
+	//stop node  miliseconds after node starts
+	node.Stop()
 
-		assert.Equal(value, 3628800)
-
-		//cancel channel after receive 10M received
-		if count == 10000000 {
-			close(channel.Output)
-		}
-	}
-}
-
-func TestNode_Run10MilionDoNothing(t *testing.T) {
-	assert := assert.New(t)
-
-	//create channel
-	channel := &Channel{}
-	channel.CreateInput(1000000)
-	channel.CreateOutput(1000000)
-
-	//create node
-	node := New(&fatorial, channel, "")
-
-	//create message and post it in a channel. 10M timmes
-	go func() {
-		ONEMILLION := 10000000
-		for i := 0; i < ONEMILLION; i++ {
-			msg := message.New(
-				make(message.Header),
-				make(message.Body),
-			)
-
-			(*msg.Body)["value"] = 10
-
-			channel.Input <- *msg
-		}
-	}()
-
-	//start node
-	go func() {
-		node.Run()
-	}()
-
-	//start message receive
-	count := 0
-	for msg := range channel.Output {
-		// value := (*msg.Body)["fat"].(int)
-		value := msg
-		count = count + 1
-
-		assert.NotNil(value)
-
-		//cancel channel after receive 10M received
-		if count == 10000000 {
-			close(channel.Output)
-		}
-	}
+	//All One million messages should be consumed
+	assert.Len(node.Channel.Output, TENMILLION)
 }

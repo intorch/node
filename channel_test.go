@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package core
+package node
 
 import (
 	"testing"
@@ -20,6 +20,24 @@ import (
 	"github.com/intorch/message"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewChannel(t *testing.T) {
+	assert := assert.New(t)
+
+	//create new channel that has the chan (input and output) capacity
+	//equals 10
+	CAPACITY := 10
+	ch := NewChannel(uint(CAPACITY))
+
+	assert.NotNil(ch)
+
+	assert.NotNil(ch.Input)
+	assert.Equal(CAPACITY, cap(ch.Input))
+
+	assert.NotNil(ch.Output)
+	assert.Equal(CAPACITY, cap(ch.Output))
+
+}
 
 func TestChannel_CreateInput(t *testing.T) {
 	assert := assert.New(t)

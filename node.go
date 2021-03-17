@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package core
+package node
 
 import (
-	"log"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/intorch/message"
 )
 
 //Node data structure which is formed by the components necessary to
@@ -28,19 +29,20 @@ type Node struct {
 	Engine  *Engine
 }
 
-func New(engine *Engine, channel *Channel, ID string) *Node {
-	if engine == nil {
-		log.Fatal("The node cannot be created withot an engine")
-	}
+func New(engine *Engine) *Node {
+	return Create(engine, nil, "")
+}
+
+func Create(engine *Engine, channel *Channel, ID string) *Node {
+	assertNotNil(engine, "The node cannot be created withot an engine")
 
 	if len(ID) == 0 {
 		ID = uuid.NewString()
 	}
 
 	if channel == nil {
-		channel = &Channel{}
-		channel.CreateInput(10)
-		channel.CreateOutput(10)
+		CAPACITY := 10
+		channel = NewChannel(uint(CAPACITY))
 	}
 
 	return &Node{
@@ -62,4 +64,30 @@ func (n Node) Run() {
 		resp := (*n.Engine)(msg)
 		n.Channel.Output <- resp
 	}
+}
+
+//Write add new message to be processed by the engine
+func (n Node) Write(msg message.Message) {
+	n.Channel.Input <- msg
+}
+
+//Read message that already been processed
+func (n Node) Read() message.Message {
+	return <-n.Channel.Output
+}
+
+//GetReader get the output channel
+func (n Node) GetReader() chan message.Message {
+	return n.Channel.Output
+}
+
+//Stop node shutdown
+func (n Node) Stop() {
+	close(n.Channel.Input)
+
+	for len(n.Channel.Input) > 0 {
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	time.Sleep(50 * time.Millisecond)
 }

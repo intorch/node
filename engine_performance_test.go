@@ -16,48 +16,52 @@ package node
 
 import (
 	"testing"
+	"time"
 
 	"github.com/intorch/message"
 	"github.com/stretchr/testify/assert"
 )
 
-//the Engine that do fatorial
-var fatorial = Engine(func(msg message.Message) message.Message {
-	body := (*msg.Body)
-
-	vl := body["value"]
-
-	acc := 1
-	for i := vl.(int); i > 0; i-- {
-		acc = acc * i
-	}
-
-	body["fat"] = acc
-
-	return msg
-})
-
-func TestEngine_run(t *testing.T) {
+func TestEngine_OneMilionDoNothing(t *testing.T) {
 	assert := assert.New(t)
 
 	//the Engine that do noting
 	var doNothingEngine = Engine(func(msg message.Message) message.Message { return msg })
 
 	msg := message.New(make(message.Header), make(message.Body))
-	resp := doNothingEngine(*msg)
 
-	assert.NotNil(resp)
-	assert.True(msg.Equals(&resp))
+	ONEMILLION := 1000000
+
+	start := time.Now()
+	for i := 0; i < ONEMILLION; i++ {
+		resp := doNothingEngine(*msg)
+
+		assert.NotNil(resp)
+		assert.Equal(*msg, resp)
+	}
+	elapsed := time.Since(start).Seconds()
+
+	assert.Greater(float64(15), elapsed)
 }
 
-func TestEngine_Fatorial(t *testing.T) {
+func TestEngine_OneMilionFatorial(t *testing.T) {
 	assert := assert.New(t)
 
 	msg := message.New(make(message.Header), make(message.Body))
+
 	(*msg.Body)["value"] = 10
 
-	resp := fatorial(*msg)
+	ONEMILLION := 1000000
 
-	assert.NotNil(resp)
-	assert.Equal(3628800, (*resp.Body)["fat"])
+	start := time.Now()
+	for i := 0; i < ONEMILLION; i++ {
+		resp := fatorial(*msg)
+
+		assert.NotNil(resp)
+		assert.True((*msg).Equals(&resp))
+		assert.Equal((*resp.Body)["fat"], 3628800)
+	}
+	elapsed := time.Since(start).Seconds()
+
+	assert.Greater(float64(20), elapsed)
 }
